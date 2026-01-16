@@ -220,30 +220,28 @@ export const smhiClient = {
   },
 
   // ============================================================================
-  // METEOROLOGICAL OBSERVATIONS
+  // OBSERVATIONS (Unified API for both meteorological and hydrological)
   // ============================================================================
 
   /**
-   * List meteorological observation stations
+   * Get observation data (unified API for both meteorological and hydrological)
    */
-  async listMetStations(): Promise<SmhiStationListResponse['station']> {
-    // Use temperature parameter (1) to get station list
-    const response = await metobsClient.request<SmhiStationListResponse>('/api/version/1.0/parameter/1.json');
-    return response.station.filter((s) => s.active);
-  },
+  async getObservation(
+    dataType: 'meteorological' | 'hydrological',
+    stationId: number,
+    parameter: string,
+    period: string,
+  ): Promise<ObservationResponse | null> {
+    const paramMap = dataType === 'meteorological' ? MET_OBS_PARAMS : HYDRO_OBS_PARAMS;
+    const client = dataType === 'meteorological' ? metobsClient : hydroobsClient;
 
-  /**
-   * Get meteorological observation data
-   */
-  async getMetObservation(stationId: number, parameter: string, period: string): Promise<ObservationResponse | null> {
-    // Map parameter name to ID
-    const paramEntry = Object.entries(MET_OBS_PARAMS).find(([, info]) => info.name === parameter);
+    const paramEntry = Object.entries(paramMap).find(([, info]) => info.name === parameter);
     if (!paramEntry) return null;
 
     const paramId = paramEntry[0];
 
     try {
-      const response = await metobsClient.request<SmhiObservationResponse>(
+      const response = await client.request<SmhiObservationResponse>(
         `/api/version/1.0/parameter/${paramId}/station/${stationId}/period/${period}/data.json`,
       );
 
@@ -253,7 +251,7 @@ export const smhiClient = {
           name: response.station.name,
           latitude: response.station.latitude,
           longitude: response.station.longitude,
-          height: response.station.height,
+          height: response.station.height || 0,
           active: response.station.active,
         },
         parameter: {
@@ -276,23 +274,42 @@ export const smhiClient = {
   },
 
   /**
-   * Find nearest meteorological station to a point
+   * Find nearest station to a point (unified API for both types)
    */
-  async findNearestMetStation(
+  async findNearestObservationStation(
+    dataType: 'meteorological' | 'hydrological',
     latitude: number,
     longitude: number,
     parameter: string,
-  ): Promise<SmhiStationListResponse['station'][0] | null> {
-    // Map parameter name to ID
-    const paramEntry = Object.entries(MET_OBS_PARAMS).find(([, info]) => info.name === parameter);
+  ): Promise<{ id: number; name: string; latitude: number; longitude: number } | null> {
+    const paramMap = dataType === 'meteorological' ? MET_OBS_PARAMS : HYDRO_OBS_PARAMS;
+    const client = dataType === 'meteorological' ? metobsClient : hydroobsClient;
+
+    const paramEntry = Object.entries(paramMap).find(([, info]) => info.name === parameter);
     if (!paramEntry) return null;
 
     const paramId = paramEntry[0];
 
-    const response = await metobsClient.request<SmhiStationListResponse>(`/api/version/1.0/parameter/${paramId}.json`);
+    const response = await client.request<SmhiStationListResponse>(`/api/version/1.0/parameter/${paramId}.json`);
     const activeStations = response.station.filter((s) => s.active);
 
     return findNearestStation(activeStations, latitude, longitude);
+  },
+
+  /**
+   * List meteorological observation stations
+   */
+  async listMetStations(): Promise<SmhiStationListResponse['station']> {
+    const response = await metobsClient.request<SmhiStationListResponse>('/api/version/1.0/parameter/1.json');
+    return response.station.filter((s) => s.active);
+  },
+
+  /**
+   * List hydrological observation stations
+   */
+  async listHydroStations(): Promise<SmhiHydroStationListResponse['station']> {
+    const response = await hydroobsClient.request<SmhiHydroStationListResponse>('/api/version/1.0/parameter/1.json');
+    return response.station.filter((s) => s.active);
   },
 
   /**
@@ -305,82 +322,6 @@ export const smhiClient = {
       description: info.description,
       unit: info.unit,
     }));
-  },
-
-  // ============================================================================
-  // HYDROLOGICAL OBSERVATIONS
-  // ============================================================================
-
-  /**
-   * List hydrological observation stations
-   */
-  async listHydroStations(): Promise<SmhiHydroStationListResponse['station']> {
-    // Use water level parameter (1) to get station list
-    const response = await hydroobsClient.request<SmhiHydroStationListResponse>('/api/version/1.0/parameter/1.json');
-    return response.station.filter((s) => s.active);
-  },
-
-  /**
-   * Get hydrological observation data
-   */
-  async getHydroObservation(stationId: number, parameter: string, period: string): Promise<ObservationResponse | null> {
-    // Map parameter name to ID
-    const paramEntry = Object.entries(HYDRO_OBS_PARAMS).find(([, info]) => info.name === parameter);
-    if (!paramEntry) return null;
-
-    const paramId = paramEntry[0];
-
-    try {
-      const response = await hydroobsClient.request<SmhiObservationResponse>(
-        `/api/version/1.0/parameter/${paramId}/station/${stationId}/period/${period}/data.json`,
-      );
-
-      return {
-        station: {
-          id: response.station.id,
-          name: response.station.name,
-          latitude: response.station.latitude,
-          longitude: response.station.longitude,
-          height: 0, // Hydro stations don't have height
-          active: response.station.active,
-        },
-        parameter: {
-          name: response.parameter.name,
-          unit: response.parameter.unit,
-        },
-        period: {
-          from: new Date(response.period.from).toISOString(),
-          to: new Date(response.period.to).toISOString(),
-          sampling: response.period.sampling,
-        },
-        observations: transformObservations(response.value),
-      };
-    } catch (error) {
-      if (error instanceof UpstreamApiError && error.statusCode === 404) {
-        return null;
-      }
-      throw error;
-    }
-  },
-
-  /**
-   * Find nearest hydrological station to a point
-   */
-  async findNearestHydroStation(
-    latitude: number,
-    longitude: number,
-    parameter: string,
-  ): Promise<SmhiHydroStationListResponse['station'][0] | null> {
-    // Map parameter name to ID
-    const paramEntry = Object.entries(HYDRO_OBS_PARAMS).find(([, info]) => info.name === parameter);
-    if (!paramEntry) return null;
-
-    const paramId = paramEntry[0];
-
-    const response = await hydroobsClient.request<SmhiHydroStationListResponse>(`/api/version/1.0/parameter/${paramId}.json`);
-    const activeStations = response.station.filter((s) => s.active);
-
-    return findNearestStation(activeStations, latitude, longitude);
   },
 
   /**

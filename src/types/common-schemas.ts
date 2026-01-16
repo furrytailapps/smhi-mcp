@@ -29,20 +29,6 @@ export const dataTypeSchema = z
   .describe('Type of observation data: meteorological (weather) or hydrological (water levels/flows)');
 
 /**
- * Meteorological parameters available from SMHI
- */
-export const metParameterSchema = z
-  .enum(['temperature', 'wind_speed', 'wind_direction', 'precipitation', 'humidity', 'pressure'])
-  .describe('Meteorological parameter to query');
-
-/**
- * Hydrological parameters available from SMHI
- */
-export const hydroParameterSchema = z
-  .enum(['water_level', 'water_flow'])
-  .describe('Hydrological parameter to query: water_level (m) or water_flow (m³/s)');
-
-/**
  * Observation period
  */
 export const periodSchema = z

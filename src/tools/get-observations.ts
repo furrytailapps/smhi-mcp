@@ -2,14 +2,7 @@ import { z } from 'zod';
 import { smhiClient } from '@/clients/smhi-client';
 import { withErrorHandling } from '@/lib/response';
 import { ValidationError, NotFoundError } from '@/lib/errors';
-import {
-  latitudeSchema,
-  longitudeSchema,
-  dataTypeSchema,
-  metParameterSchema,
-  hydroParameterSchema,
-  periodSchema,
-} from '@/types/common-schemas';
+import { dataTypeSchema, periodSchema } from '@/types/common-schemas';
 
 export const getObservationsInputSchema = {
   dataType: dataTypeSchema,
@@ -60,34 +53,26 @@ type GetObservationsInput = {
 export const getObservationsHandler = withErrorHandling(async (args: GetObservationsInput) => {
   let stationId = args.stationId;
 
-  // If no stationId, find nearest station
+  // If no stationId, find nearest station using unified API
   if (!stationId) {
     if (args.latitude === undefined || args.longitude === undefined) {
       throw new ValidationError('Either stationId or both latitude and longitude must be provided');
     }
 
-    if (args.dataType === 'meteorological') {
-      const station = await smhiClient.findNearestMetStation(args.latitude, args.longitude, args.parameter);
-      if (!station) {
-        throw new NotFoundError('Meteorological station', `near ${args.latitude},${args.longitude} for ${args.parameter}`);
-      }
-      stationId = station.id;
-    } else {
-      const station = await smhiClient.findNearestHydroStation(args.latitude, args.longitude, args.parameter);
-      if (!station) {
-        throw new NotFoundError('Hydrological station', `near ${args.latitude},${args.longitude} for ${args.parameter}`);
-      }
-      stationId = station.id;
+    const station = await smhiClient.findNearestObservationStation(
+      args.dataType,
+      args.latitude,
+      args.longitude,
+      args.parameter,
+    );
+    if (!station) {
+      throw new NotFoundError(`${args.dataType} station`, `near ${args.latitude},${args.longitude} for ${args.parameter}`);
     }
+    stationId = station.id;
   }
 
-  // Fetch observation data
-  let result;
-  if (args.dataType === 'meteorological') {
-    result = await smhiClient.getMetObservation(stationId, args.parameter, args.period);
-  } else {
-    result = await smhiClient.getHydroObservation(stationId, args.parameter, args.period);
-  }
+  // Fetch observation data using unified API
+  const result = await smhiClient.getObservation(args.dataType, stationId, args.parameter, args.period);
 
   if (!result) {
     throw new NotFoundError('Observation data', `station ${stationId}, parameter ${args.parameter}`);

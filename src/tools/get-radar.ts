@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { smhiClient } from '@/clients/smhi-client';
 import { withErrorHandling } from '@/lib/response';
 import { radarProductSchema, radarAreaSchema, radarFormatSchema } from '@/types/common-schemas';

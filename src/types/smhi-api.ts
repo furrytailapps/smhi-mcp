@@ -505,12 +505,3 @@ export const HYDRO_OBS_PARAMS: Record<number, { name: string; description: strin
   1: { name: 'water_level', description: 'Vattenstånd', unit: 'm' },
   2: { name: 'water_flow', description: 'Vattenföring', unit: 'm³/s' },
 };
-
-/**
- * Observation periods
- */
-export const OBS_PERIODS = {
-  'latest-hour': 'latest-hour',
-  'latest-day': 'latest-day',
-  'latest-months': 'latest-months',
-} as const;
