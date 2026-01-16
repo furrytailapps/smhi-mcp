@@ -29,6 +29,28 @@ Construction/infrastructure companies using yesper.ai who need:
 | `smhi_get_current_conditions`| Warnings, radar, lightning (via `conditionType` param)   |
 | `smhi_describe_data`         | Discover stations, parameters, districts                 |
 
+### Tool Consolidation Pattern (Reference)
+
+This MCP demonstrates how to consolidate multiple related tools into one using enum parameters.
+
+**Before (6 tools):**
+- `smhi_get_warnings` - Weather warnings
+- `smhi_get_radar` - Radar images
+- `smhi_get_lightning` - Lightning strikes
+
+**After (1 tool):**
+```typescript
+// smhi_get_current_conditions with conditionType enum
+conditionType: z.enum(['warnings', 'radar', 'lightning'])
+
+// Usage:
+{ "conditionType": "warnings", "warningLevel": "yellow" }
+{ "conditionType": "radar", "format": "png" }
+{ "conditionType": "lightning", "date": "latest" }
+```
+
+**When to consolidate:** Tools that share a semantic category (e.g., "current conditions") or have similar use patterns. Each option can have its own optional parameters.
+
 ## Project Structure
 
 ```
