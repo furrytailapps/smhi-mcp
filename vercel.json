@@ -5,5 +5,9 @@
       "maxDuration": 60,
       "memory": 512
     }
+  },
+  "deploymentProtection": {
+    "production": "none",
+    "preview": "none"
   }
 }
