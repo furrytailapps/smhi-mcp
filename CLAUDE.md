@@ -20,16 +20,14 @@ Construction/infrastructure companies using yesper.ai who need:
 - Water level data for excavation near waterways
 - Lightning alerts for crane/height work safety
 
-## Available Tools (6)
+## Available Tools (4)
 
-| Tool                    | Description                                     |
-| ----------------------- | ----------------------------------------------- |
-| `smhi_get_forecast`     | 10-day point forecast for construction planning |
-| `smhi_get_observations` | Station measurements (weather + water levels)   |
-| `smhi_get_warnings`     | Impact-based weather warnings for safety        |
-| `smhi_get_radar`        | Precipitation radar images for nowcasting       |
-| `smhi_get_lightning`    | Lightning strike data for height work safety    |
-| `smhi_describe_data`    | Discover stations, parameters, districts        |
+| Tool                         | Description                                              |
+| ---------------------------- | -------------------------------------------------------- |
+| `smhi_get_forecast`          | 10-day point forecast for construction planning          |
+| `smhi_get_observations`      | Station measurements (weather + water levels)            |
+| `smhi_get_current_conditions`| Warnings, radar, lightning (via `conditionType` param)   |
+| `smhi_describe_data`         | Discover stations, parameters, districts                 |
 
 ## Project Structure
 
@@ -43,13 +41,11 @@ src/
 │   ├── http-client.ts         # HTTP wrapper
 │   └── response.ts            # Response formatting
 ├── tools/
-│   ├── index.ts               # Tool registry (6 tools)
-│   ├── get-forecast.ts        # SNOW1gv1 point forecast
-│   ├── get-observations.ts    # Met + hydro station data
-│   ├── get-warnings.ts        # IBW warnings
-│   ├── get-radar.ts           # Precipitation radar
-│   ├── get-lightning.ts       # Lightning archive
-│   └── describe-data.ts       # Metadata discovery
+│   ├── index.ts                  # Tool registry (4 tools)
+│   ├── get-forecast.ts           # SNOW1gv1 point forecast
+│   ├── get-observations.ts       # Met + hydro station data
+│   ├── get-current-conditions.ts # Warnings, radar, lightning
+│   └── describe-data.ts          # Metadata discovery
 └── types/
     ├── smhi-api.ts            # Raw API types + transforms
     └── common-schemas.ts      # Shared Zod schemas
@@ -168,14 +164,14 @@ node ~/.claude/scripts/mcp-test-runner.cjs https://mcp-smhi.vercel.app/mcp --all
 // smhi_get_observations - temperature near Stockholm
 { "dataType": "meteorological", "latitude": 59.33, "longitude": 18.07, "parameter": "temperature", "period": "latest-hour" }
 
-// smhi_get_warnings - all yellow+ warnings
-{ "warningLevel": "yellow" }
+// smhi_get_current_conditions - weather warnings
+{ "conditionType": "warnings", "warningLevel": "yellow" }
 
-// smhi_get_radar - current precipitation
-{ "product": "comp", "area": "sweden", "format": "png" }
+// smhi_get_current_conditions - precipitation radar
+{ "conditionType": "radar", "format": "png" }
 
-// smhi_get_lightning - recent strikes near Stockholm
-{ "date": "latest", "latitude": 59.33, "longitude": 18.07, "radiusKm": 50 }
+// smhi_get_current_conditions - lightning near Stockholm
+{ "conditionType": "lightning", "date": "latest", "latitude": 59.33, "longitude": 18.07, "radiusKm": 50 }
 
 // smhi_describe_data - list forecast parameters
 { "dataType": "forecast_parameters" }

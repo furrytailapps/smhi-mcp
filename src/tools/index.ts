@@ -2,18 +2,15 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { getForecastTool, getForecastHandler } from './get-forecast';
 import { getObservationsTool, getObservationsHandler } from './get-observations';
-import { getWarningsTool, getWarningsHandler } from './get-warnings';
-import { getRadarTool, getRadarHandler } from './get-radar';
-import { getLightningTool, getLightningHandler } from './get-lightning';
+import { getCurrentConditionsTool, getCurrentConditionsHandler } from './get-current-conditions';
 import { describeDataTool, describeDataHandler } from './describe-data';
 
-// Tool registry: 6 tools for SMHI weather and hydrology data
+// Tool registry: 4 tools for SMHI weather and hydrology data
+// Follows monorepo pattern of consolidating tools with enum parameters
 const tools = [
   { definition: getForecastTool, handler: getForecastHandler },
   { definition: getObservationsTool, handler: getObservationsHandler },
-  { definition: getWarningsTool, handler: getWarningsHandler },
-  { definition: getRadarTool, handler: getRadarHandler },
-  { definition: getLightningTool, handler: getLightningHandler },
+  { definition: getCurrentConditionsTool, handler: getCurrentConditionsHandler },
   { definition: describeDataTool, handler: describeDataHandler },
 ];
 
