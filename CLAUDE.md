@@ -7,7 +7,7 @@ MCP server wrapping SMHI (Swedish Meteorological and Hydrological Institute) API
 ## Production URL
 
 ```
-https://smhi-mcp.vercel.app/mcp
+https://mcp-smhi.vercel.app/mcp
 ```
 
 ## Target Audience
@@ -75,8 +75,8 @@ GET / api / category / snow1g / version / 1 / geotype / point / lon / { lon } / 
 // Observations
 GET / api / version / 1.0 / parameter / { param } / station / { id } / period / { period } / data.json;
 
-// Warnings
-GET / api / alerts.json;
+// Warnings (IBW - Impact Based Warnings)
+GET /ibww/api/version/1/warning.json
 
 // Radar
 GET / api / version / latest / area / sweden / product / comp / format / png;
@@ -131,12 +131,11 @@ SMHI API rate limits apply. Use `SMHI_API_CONCURRENCY = 2` from `@/lib/concurren
 | 1   | water_level | m    |
 | 2   | water_flow  | m³/s |
 
-## Warning Severity Levels
+## Warning Levels (SMHI Color-Coded)
 
-- **Minor** - Be aware
-- **Moderate** - Be prepared
-- **Severe** - Take action
-- **Extreme** - Take immediate action
+- **Yellow** - Be aware
+- **Orange** - Be prepared
+- **Red** - Take action
 
 ## Development
 
@@ -151,13 +150,13 @@ npm run prettier:fix # Format code
 
 ```bash
 # Basic connectivity
-~/.claude/scripts/test-mcp.sh https://smhi-mcp.vercel.app/mcp
+~/.claude/scripts/test-mcp.sh https://mcp-smhi.vercel.app/mcp
 
 # All tools with verbose output
-node ~/.claude/scripts/mcp-test-runner.cjs https://smhi-mcp.vercel.app/mcp --all -v
+node ~/.claude/scripts/mcp-test-runner.cjs https://mcp-smhi.vercel.app/mcp --all -v
 
 # LLM compatibility simulation
-node ~/.claude/scripts/mcp-test-runner.cjs https://smhi-mcp.vercel.app/mcp --all --llm-sim -v
+node ~/.claude/scripts/mcp-test-runner.cjs https://mcp-smhi.vercel.app/mcp --all --llm-sim -v
 ```
 
 ## Sample Tool Inputs
@@ -169,8 +168,8 @@ node ~/.claude/scripts/mcp-test-runner.cjs https://smhi-mcp.vercel.app/mcp --all
 // smhi_get_observations - temperature near Stockholm
 { "dataType": "meteorological", "latitude": 59.33, "longitude": 18.07, "parameter": "temperature", "period": "latest-hour" }
 
-// smhi_get_warnings - all moderate+ warnings
-{ "districts": "all", "severity": "moderate" }
+// smhi_get_warnings - all yellow+ warnings
+{ "warningLevel": "yellow" }
 
 // smhi_get_radar - current precipitation
 { "product": "comp", "area": "sweden", "format": "png" }
