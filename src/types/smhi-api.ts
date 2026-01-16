@@ -8,7 +8,7 @@
 // ============================================================================
 
 /**
- * Raw SMHI forecast response
+ * Raw SMHI forecast response (SNOW1g v1)
  * Endpoint: GET /api/category/snow1g/version/1/geotype/point/lon/{lon}/lat/{lat}/data.json
  */
 export interface SmhiForecastResponse {
@@ -22,16 +22,32 @@ export interface SmhiForecastResponse {
 }
 
 export interface SmhiForecastTimeSeries {
-  validTime: string;
-  parameters: SmhiForecastParameter[];
+  time: string;
+  intervalParametersStartTime?: string;
+  data: SmhiForecastData;
 }
 
-export interface SmhiForecastParameter {
-  name: string;
-  levelType: string;
-  level: number;
-  unit: string;
-  values: number[];
+export interface SmhiForecastData {
+  air_temperature?: number;
+  wind_speed?: number;
+  wind_speed_of_gust?: number;
+  wind_from_direction?: number;
+  relative_humidity?: number;
+  cloud_area_fraction?: number;
+  precipitation_amount_mean?: number;
+  probability_of_precipitation?: number;
+  visibility_in_air?: number;
+  air_pressure_at_mean_sea_level?: number;
+  thunderstorm_probability?: number;
+  symbol_code?: string;
+  precipitation_frozen_part?: number;
+  probability_of_frozen_precipitation?: number;
+  cloud_base_altitude?: number;
+  cloud_top_altitude?: number;
+  low_type_cloud_area_fraction?: number;
+  medium_type_cloud_area_fraction?: number;
+  high_type_cloud_area_fraction?: number;
+  predominant_precipitation_type_at_surface?: number;
 }
 
 /**
@@ -45,11 +61,12 @@ export interface ForecastPoint {
   windDirection?: number;
   humidity?: number;
   cloudCover?: number;
-  precipitationCategory?: number;
   precipitationMean?: number;
+  precipitationProbability?: number;
   visibility?: number;
   pressure?: number;
   thunderProbability?: number;
+  symbolCode?: string;
 }
 
 export interface ForecastResponse {
@@ -197,55 +214,58 @@ export interface SmhiHydroStation {
 // ============================================================================
 
 /**
- * Raw SMHI warnings response (CAP format)
- * Endpoint: GET /api/alerts.json
+ * Raw SMHI warnings response
+ * Endpoint: GET /ibww/api/version/1/warning.json
  */
-export interface SmhiWarningsResponse {
-  alert: SmhiAlert[];
+export type SmhiWarningsResponse = SmhiWarningEvent[];
+
+export interface SmhiWarningEvent {
+  id: string;
+  normalProbability: boolean;
+  event: {
+    sv: string;
+    en: string;
+    code?: string;
+  };
+  descriptions: SmhiWarningDescription[];
+  warningAreas: SmhiWarningArea[];
 }
 
-export interface SmhiAlert {
-  identifier: string;
-  sender: string;
-  sent: string;
-  status: string;
-  msgType: string;
-  scope: string;
-  code: string[];
-  info: SmhiAlertInfo[];
+export interface SmhiWarningArea {
+  id: string;
+  approximateStart: string;
+  approximateEnd: string;
+  published: string;
+  areaName: {
+    sv: string;
+    en: string;
+  };
+  warningLevel: {
+    sv: string;
+    en: string;
+    code: string;
+  };
+  eventDescription?: {
+    sv: string;
+    en: string;
+  };
+  affectedAreas: string[];
+  descriptions: SmhiWarningDescription[];
+  area?: {
+    type: string;
+    coordinates: number[][][];
+  };
 }
 
-export interface SmhiAlertInfo {
-  language: string;
-  category: string[];
-  event: string;
-  urgency: string;
-  severity: string;
-  certainty: string;
-  effective: string;
-  expires: string;
-  senderName: string;
-  headline: string;
-  description: string;
-  instruction?: string;
-  web?: string;
-  contact?: string;
-  parameter: SmhiAlertParameter[];
-  area: SmhiAlertArea[];
-}
-
-export interface SmhiAlertParameter {
-  valueName: string;
-  value: string;
-}
-
-export interface SmhiAlertArea {
-  areaDesc: string;
-  polygon?: string;
-  geocode?: {
-    valueName: string;
-    value: string;
-  }[];
+export interface SmhiWarningDescription {
+  title: {
+    sv: string;
+    en: string;
+  };
+  text: {
+    sv: string;
+    en: string;
+  };
 }
 
 /**
@@ -253,17 +273,14 @@ export interface SmhiAlertArea {
  */
 export interface Warning {
   id: string;
-  sent: string;
   event: string;
-  severity: 'Minor' | 'Moderate' | 'Severe' | 'Extreme' | 'Unknown';
-  urgency: 'Immediate' | 'Expected' | 'Future' | 'Past' | 'Unknown';
-  certainty: 'Observed' | 'Likely' | 'Possible' | 'Unlikely' | 'Unknown';
-  effective: string;
-  expires: string;
-  headline: string;
-  description: string;
-  instruction?: string;
-  areas: string[];
+  warningLevel: string;
+  areaName: string;
+  approximateStart: string;
+  approximateEnd: string;
+  published: string;
+  description?: string;
+  affectedAreas: string[];
 }
 
 export interface WarningsResponse {
@@ -293,7 +310,7 @@ export interface District {
 // ============================================================================
 
 /**
- * Raw SMHI radar products response
+ * Raw SMHI radar products response (top level)
  */
 export interface SmhiRadarProductsResponse {
   key: string;
@@ -302,8 +319,7 @@ export interface SmhiRadarProductsResponse {
   summary: string;
   link: SmhiLink[];
   product?: SmhiRadarProduct[];
-  format?: SmhiRadarFormat[];
-  file?: SmhiRadarFile[];
+  area?: SmhiRadarArea[];
 }
 
 export interface SmhiRadarProduct {
@@ -314,20 +330,45 @@ export interface SmhiRadarProduct {
   link: SmhiLink[];
 }
 
-export interface SmhiRadarFormat {
+export interface SmhiRadarArea {
   key: string;
   updated: number;
   title: string;
   summary: string;
   link: SmhiLink[];
-  file?: SmhiRadarFile[];
+}
+
+/**
+ * Raw SMHI radar area/product response
+ */
+export interface SmhiRadarAreaResponse {
+  key: string;
+  updated: number;
+  title: string;
+  summary: string;
+  link: SmhiLink[];
+  firstFiles?: SmhiRadarFile[];
+  lastFiles?: SmhiRadarFile[];
+  years?: SmhiRadarYear[];
+}
+
+export interface SmhiRadarYear {
+  key: string;
+  updated: number;
+  link: SmhiLink[];
 }
 
 export interface SmhiRadarFile {
   key: string;
   updated: number;
   valid: number;
-  formats: string[];
+  formats: SmhiRadarFileFormat[];
+  link: SmhiLink[];
+}
+
+export interface SmhiRadarFileFormat {
+  key: string;
+  updated: number;
   link: SmhiLink[];
 }
 
@@ -427,20 +468,21 @@ export const SMHI_API_BASES = {
 } as const;
 
 /**
- * Forecast parameter mapping (SNOW1gv1 parameter names to our names)
+ * Forecast parameter mapping (SNOW1g v1 API property names to our names)
  */
 export const FORECAST_PARAMS: Record<string, { name: string; unit: string }> = {
-  t: { name: 'temperature', unit: '°C' },
-  ws: { name: 'windSpeed', unit: 'm/s' },
-  gust: { name: 'windGust', unit: 'm/s' },
-  wd: { name: 'windDirection', unit: '°' },
-  r: { name: 'humidity', unit: '%' },
-  tcc_mean: { name: 'cloudCover', unit: '%' },
-  pcat: { name: 'precipitationCategory', unit: 'category' },
-  pmean: { name: 'precipitationMean', unit: 'mm/h' },
-  vis: { name: 'visibility', unit: 'km' },
-  msl: { name: 'pressure', unit: 'hPa' },
-  tstm: { name: 'thunderProbability', unit: '%' },
+  air_temperature: { name: 'temperature', unit: '°C' },
+  wind_speed: { name: 'windSpeed', unit: 'm/s' },
+  wind_speed_of_gust: { name: 'windGust', unit: 'm/s' },
+  wind_from_direction: { name: 'windDirection', unit: '°' },
+  relative_humidity: { name: 'humidity', unit: '%' },
+  cloud_area_fraction: { name: 'cloudCover', unit: '%' },
+  precipitation_amount_mean: { name: 'precipitationMean', unit: 'mm/h' },
+  probability_of_precipitation: { name: 'precipitationProbability', unit: '%' },
+  visibility_in_air: { name: 'visibility', unit: 'km' },
+  air_pressure_at_mean_sea_level: { name: 'pressure', unit: 'hPa' },
+  thunderstorm_probability: { name: 'thunderProbability', unit: '%' },
+  symbol_code: { name: 'symbolCode', unit: '' },
 };
 
 /**

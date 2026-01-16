@@ -50,11 +50,11 @@ export const periodSchema = z
   .describe('Time period for observations: latest-hour, latest-day, or latest-months');
 
 /**
- * Warning severity levels
+ * Warning level (SMHI color-coded system)
  */
-export const warningSeveritySchema = z
-  .enum(['moderate', 'severe', 'extreme'])
-  .describe('Minimum warning severity to include: moderate, severe, or extreme');
+export const warningLevelSchema = z
+  .enum(['yellow', 'orange', 'red'])
+  .describe('Minimum warning level to include: yellow (be aware), orange (be prepared), red (take action)');
 
 /**
  * Radar product types
@@ -71,7 +71,7 @@ export const radarAreaSchema = z.enum(['sweden']).describe('Radar coverage area'
 /**
  * Radar format
  */
-export const radarFormatSchema = z.enum(['png', 'geotiff']).describe('Image format: png or geotiff');
+export const radarFormatSchema = z.enum(['png', 'tif', 'h5']).describe('Image format: png, tif (GeoTiff), or h5 (HDF5)');
 
 /**
  * Data types for describe_data tool

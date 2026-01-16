@@ -11,6 +11,7 @@ import {
   type SmhiHydroStationListResponse,
   type SmhiWarningsResponse,
   type SmhiRadarProductsResponse,
+  type SmhiRadarAreaResponse,
   type SmhiDistrictResponse,
   type SmhiLink,
   type ForecastResponse,
@@ -40,12 +41,15 @@ const lightningClient = createHttpClient({ baseUrl: SMHI_API_BASES.lightning, ti
  */
 function transformForecastTimeSeries(timeSeries: SmhiForecastResponse['timeSeries']): ForecastPoint[] {
   return timeSeries.map((ts) => {
-    const point: Record<string, string | number | undefined> = { validTime: ts.validTime };
+    const point: Record<string, string | number | undefined> = { validTime: ts.time };
 
-    for (const param of ts.parameters) {
-      const mapping = FORECAST_PARAMS[param.name];
-      if (mapping && param.values.length > 0) {
-        point[mapping.name] = param.values[0];
+    // Map API property names to our output names using FORECAST_PARAMS
+    if (ts.data) {
+      for (const [apiName, value] of Object.entries(ts.data)) {
+        const mapping = FORECAST_PARAMS[apiName];
+        if (mapping && value !== undefined) {
+          point[mapping.name] = value;
+        }
       }
     }
 
@@ -67,24 +71,24 @@ function transformObservations(values: SmhiObservationResponse['value']): Observ
 /**
  * Transform raw warnings to our format
  */
-function transformWarnings(alerts: SmhiWarningsResponse['alert']): Warning[] {
+function transformWarnings(events: SmhiWarningsResponse): Warning[] {
   const warnings: Warning[] = [];
 
-  for (const alert of alerts) {
-    for (const info of alert.info) {
+  for (const event of events) {
+    for (const area of event.warningAreas) {
+      // Get description text if available
+      const descriptionPart = area.descriptions.find((d) => d.title.en === 'INCIDENT' || d.title.sv === 'INCIDENT');
+
       warnings.push({
-        id: alert.identifier,
-        sent: alert.sent,
-        event: info.event,
-        severity: info.severity as Warning['severity'],
-        urgency: info.urgency as Warning['urgency'],
-        certainty: info.certainty as Warning['certainty'],
-        effective: info.effective,
-        expires: info.expires,
-        headline: info.headline,
-        description: info.description,
-        instruction: info.instruction,
-        areas: info.area.map((a) => a.areaDesc),
+        id: area.id,
+        event: event.event.en || event.event.sv,
+        warningLevel: area.warningLevel.en || area.warningLevel.sv,
+        areaName: area.areaName.en || area.areaName.sv,
+        approximateStart: area.approximateStart,
+        approximateEnd: area.approximateEnd,
+        published: area.published,
+        description: descriptionPart?.text.en || descriptionPart?.text.sv,
+        affectedAreas: area.affectedAreas,
       });
     }
   }
@@ -398,22 +402,24 @@ export const smhiClient = {
   /**
    * Get active weather warnings
    */
-  async getWarnings(severity?: string): Promise<WarningsResponse> {
-    const response = await warningsClient.request<SmhiWarningsResponse>('/api/alerts.json');
+  async getWarnings(warningLevel?: string): Promise<WarningsResponse> {
+    const response = await warningsClient.request<SmhiWarningsResponse>('/ibww/api/version/1/warning.json');
 
-    let warnings = transformWarnings(response.alert);
+    let warnings = transformWarnings(response);
 
-    // Filter by severity if specified
-    if (severity) {
-      const severityOrder: Record<string, number> = {
-        Minor: 1,
-        Moderate: 2,
-        Severe: 3,
-        Extreme: 4,
+    // Filter by warning level if specified (Yellow, Orange, Red)
+    if (warningLevel) {
+      const levelOrder: Record<string, number> = {
+        yellow: 1,
+        orange: 2,
+        red: 3,
       };
-      const minSeverity = severityOrder[severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase()] || 0;
+      const minLevel = levelOrder[warningLevel.toLowerCase()] || 0;
 
-      warnings = warnings.filter((w) => (severityOrder[w.severity] || 0) >= minSeverity);
+      warnings = warnings.filter((w) => {
+        const warnLevel = w.warningLevel.toLowerCase();
+        return (levelOrder[warnLevel] || 0) >= minLevel;
+      });
     }
 
     return {
@@ -444,34 +450,26 @@ export const smhiClient = {
    */
   async getRadarImage(product: string, area: string, format: string): Promise<RadarImage> {
     // Navigate the API to find the latest image URL
-    const areaResponse = await radarClient.request<SmhiRadarProductsResponse>(
+    const areaResponse = await radarClient.request<SmhiRadarAreaResponse>(
       `/api/version/latest/area/${area}/product/${product}`,
     );
 
-    if (!areaResponse.format || areaResponse.format.length === 0) {
-      throw new NotFoundError('Radar format', `${product}/${area}`);
-    }
-
-    // Find the requested format
-    const formatData = areaResponse.format.find((f) => f.key === format);
-    if (!formatData) {
-      throw new NotFoundError('Radar format', format);
-    }
-
-    // Get files for this format
-    const formatResponse = await radarClient.request<SmhiRadarProductsResponse>(
-      `/api/version/latest/area/${area}/product/${product}/format/${format}`,
-    );
-
-    if (!formatResponse.file || formatResponse.file.length === 0) {
-      throw new NotFoundError('Radar file', `${product}/${area}/${format}`);
+    if (!areaResponse.lastFiles || areaResponse.lastFiles.length === 0) {
+      throw new NotFoundError('Radar files', `${product}/${area}`);
     }
 
     // Get the latest file
-    const latestFile = formatResponse.file[formatResponse.file.length - 1];
+    const latestFile = areaResponse.lastFiles[areaResponse.lastFiles.length - 1];
+
+    // Find the requested format
+    const formatData = latestFile.formats.find((f) => f.key === format);
+    if (!formatData) {
+      const availableFormats = latestFile.formats.map((f) => f.key).join(', ');
+      throw new NotFoundError('Radar format', `${format} (available: ${availableFormats})`);
+    }
 
     // Find the download link
-    const downloadLink = latestFile.link.find((l: SmhiLink) => l.type === `image/${format === 'geotiff' ? 'tiff' : format}`);
+    const downloadLink = formatData.link.find((l: SmhiLink) => l.rel === 'data' || l.type?.includes('image'));
     if (!downloadLink) {
       throw new NotFoundError('Radar download link', `${product}/${area}/${format}`);
     }

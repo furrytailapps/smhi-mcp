@@ -8,7 +8,7 @@ export const getRadarInputSchema = {
     .default('comp')
     .describe("Radar product type: 'comp' (composite precipitation) or 'pcappi' (constant altitude PPI)."),
   area: radarAreaSchema.default('sweden').describe("Coverage area: 'sweden' for full country coverage."),
-  format: radarFormatSchema.default('png').describe('Image format: png (viewable) or geotiff (GIS-compatible).'),
+  format: radarFormatSchema.default('png').describe('Image format: png (viewable), tif (GeoTiff for GIS), or h5 (HDF5).'),
 };
 
 export const getRadarTool = {
