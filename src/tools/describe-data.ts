@@ -1,20 +1,29 @@
-import { z } from 'zod';
 import { smhiClient } from '@/clients/smhi-client';
 import { withErrorHandling } from '@/lib/response';
+import { listKommuner, listLan, getKommunerInLan } from '@/lib/location-resolver';
 import { describeDataTypeSchema } from '@/types/common-schemas';
+import { z } from 'zod';
 
 export const describeDataInputSchema = {
   dataType: describeDataTypeSchema,
+  lanFilter: z
+    .string()
+    .optional()
+    .describe(
+      'For kommuner: filter by län code to list only kommuner in that county. ' +
+        'Example: "AB" for Stockholms län kommuner.'
+    ),
 };
 
 export const describeDataTool = {
   name: 'smhi_describe_data',
   description:
-    'Discover available SMHI data sources, parameters, and stations. ' +
-    'Use this to find station IDs, understand available parameters, or list warning districts. ' +
+    'Discover available SMHI data sources, parameters, stations, and Swedish administrative areas. ' +
+    'Use this to find station IDs, understand available parameters, list warning districts, ' +
+    'or look up kommun/län codes for location-based queries. ' +
     'Options: forecast_parameters, met_stations, hydro_stations, met_parameters, hydro_parameters, ' +
-    'warning_districts, radar_products. ' +
-    'Example: dataType=met_stations to list all active meteorological stations.',
+    'warning_districts, radar_products, kommuner, lan. ' +
+    'Example: dataType=kommuner, lanFilter="AB" to list kommuner in Stockholms län.',
   inputSchema: describeDataInputSchema,
 };
 
@@ -26,7 +35,10 @@ type DescribeDataInput = {
     | 'met_parameters'
     | 'hydro_parameters'
     | 'warning_districts'
-    | 'radar_products';
+    | 'radar_products'
+    | 'kommuner'
+    | 'lan';
+  lanFilter?: string;
 };
 
 export const describeDataHandler = withErrorHandling(async (args: DescribeDataInput) => {
@@ -97,6 +109,34 @@ export const describeDataHandler = withErrorHandling(async (args: DescribeDataIn
           key: p.key,
           title: p.title,
           summary: p.summary,
+        })),
+      };
+    }
+
+    case 'kommuner': {
+      const kommuner = args.lanFilter ? getKommunerInLan(args.lanFilter) : listKommuner();
+      return {
+        description: args.lanFilter
+          ? `Swedish kommuner (municipalities) in ${args.lanFilter}`
+          : 'Swedish kommuner (municipalities). Use lanFilter to narrow by county.',
+        count: kommuner.length,
+        kommuner: kommuner.map((k) => ({
+          code: k.code,
+          name: k.name,
+        })),
+      };
+    }
+
+    case 'lan': {
+      const lan = listLan();
+      return {
+        description: 'Swedish län (counties) with centroid coordinates',
+        count: lan.length,
+        lan: lan.map((l) => ({
+          code: l.code,
+          name: l.name,
+          latitude: l.latitude,
+          longitude: l.longitude,
         })),
       };
     }

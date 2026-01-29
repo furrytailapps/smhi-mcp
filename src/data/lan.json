@@ -1,0 +1,23 @@
+[
+  { "code": "AB", "name": "Stockholms län", "latitude": 59.33, "longitude": 18.07 },
+  { "code": "C", "name": "Uppsala län", "latitude": 59.86, "longitude": 17.64 },
+  { "code": "D", "name": "Södermanlands län", "latitude": 59.03, "longitude": 16.75 },
+  { "code": "E", "name": "Östergötlands län", "latitude": 58.41, "longitude": 15.62 },
+  { "code": "F", "name": "Jönköpings län", "latitude": 57.78, "longitude": 14.16 },
+  { "code": "G", "name": "Kronobergs län", "latitude": 56.88, "longitude": 14.81 },
+  { "code": "H", "name": "Kalmar län", "latitude": 57.00, "longitude": 16.36 },
+  { "code": "I", "name": "Gotlands län", "latitude": 57.64, "longitude": 18.29 },
+  { "code": "K", "name": "Blekinge län", "latitude": 56.17, "longitude": 15.59 },
+  { "code": "M", "name": "Skåne län", "latitude": 55.99, "longitude": 13.60 },
+  { "code": "N", "name": "Hallands län", "latitude": 56.90, "longitude": 12.85 },
+  { "code": "O", "name": "Västra Götalands län", "latitude": 58.25, "longitude": 12.30 },
+  { "code": "S", "name": "Värmlands län", "latitude": 59.73, "longitude": 13.24 },
+  { "code": "T", "name": "Örebro län", "latitude": 59.27, "longitude": 15.21 },
+  { "code": "U", "name": "Västmanlands län", "latitude": 59.62, "longitude": 16.55 },
+  { "code": "W", "name": "Dalarnas län", "latitude": 61.09, "longitude": 14.67 },
+  { "code": "X", "name": "Gävleborgs län", "latitude": 61.30, "longitude": 16.15 },
+  { "code": "Y", "name": "Västernorrlands län", "latitude": 63.18, "longitude": 17.28 },
+  { "code": "Z", "name": "Jämtlands län", "latitude": 63.17, "longitude": 14.64 },
+  { "code": "AC", "name": "Västerbottens län", "latitude": 64.75, "longitude": 17.00 },
+  { "code": "BD", "name": "Norrbottens län", "latitude": 66.83, "longitude": 20.20 }
+]

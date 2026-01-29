@@ -57,10 +57,14 @@ conditionType: z.enum(['warnings', 'radar', 'lightning'])
 src/
 ├── app/[transport]/route.ts   # MCP endpoint
 ├── clients/smhi-client.ts     # Unified SMHI API client
+├── data/
+│   ├── kommuner.json          # 290 Swedish municipalities
+│   └── lan.json               # 21 Swedish counties with centroids
 ├── lib/
 │   ├── concurrency.ts         # Rate limiting (max 2 concurrent)
 │   ├── errors.ts              # Error classes
 │   ├── http-client.ts         # HTTP wrapper
+│   ├── location-resolver.ts   # Kommun/län → coordinates mapping
 │   └── response.ts            # Response formatting
 ├── tools/
 │   ├── index.ts                  # Tool registry (4 tools)
@@ -103,12 +107,22 @@ GET / api / version / latest / area / sweden / product / comp / format / png;
 GET / api / version / latest / year / { y } / month / { m } / day / { d } / data.csv;
 ```
 
-## Coordinate System
+## Location Input Options
 
-- **Input:** WGS84 (lat/lon) - standard GPS coordinates
+Tools accept location in three formats:
+
+| Format | Example | Description |
+|--------|---------|-------------|
+| **WGS84 coordinates** | `latitude=59.33, longitude=18.07` | Decimal degrees |
+| **Kommun code/name** | `kommun="0180"` or `kommun="Stockholm"` | 4-digit municipality code or name |
+| **Län code/name** | `lan="AB"` or `lan="Stockholms län"` | 1-2 letter county code or name |
+
 - **Sweden bounds:** 55-69°N latitude, 11-24°E longitude
-- **Stockholm example:** latitude=59.33, longitude=18.07
+- **Kommun codes:** 4-digit (e.g., "0180" = Stockholm, "1480" = Göteborg)
+- **Län codes:** 1-2 letters (e.g., "AB" = Stockholms län, "O" = Västra Götalands län)
 - **Radar output:** Includes SWEREF99TM (EPSG:3006) bounding box
+
+Use `smhi_describe_data` with `dataType="kommuner"` or `dataType="lan"` to list available codes.
 
 ## Concurrency
 
@@ -180,11 +194,20 @@ node ~/.claude/scripts/mcp-test-runner.cjs https://mcp-smhi.vercel.app/mcp --all
 ## Sample Tool Inputs
 
 ```json
-// smhi_get_forecast - Stockholm weather
+// smhi_get_forecast - by coordinates
 { "latitude": 59.33, "longitude": 18.07 }
 
-// smhi_get_observations - temperature near Stockholm
-{ "dataType": "meteorological", "latitude": 59.33, "longitude": 18.07, "parameter": "temperature", "period": "latest-hour" }
+// smhi_get_forecast - by kommun code
+{ "kommun": "0180" }
+
+// smhi_get_forecast - by kommun name
+{ "kommun": "Stockholm" }
+
+// smhi_get_forecast - by län code
+{ "lan": "AB" }
+
+// smhi_get_observations - temperature in Göteborg
+{ "dataType": "meteorological", "kommun": "Göteborg", "parameter": "temperature", "period": "latest-hour" }
 
 // smhi_get_current_conditions - weather warnings
 { "conditionType": "warnings", "warningLevel": "yellow" }
@@ -192,9 +215,15 @@ node ~/.claude/scripts/mcp-test-runner.cjs https://mcp-smhi.vercel.app/mcp --all
 // smhi_get_current_conditions - precipitation radar
 { "conditionType": "radar", "format": "png" }
 
-// smhi_get_current_conditions - lightning near Stockholm
-{ "conditionType": "lightning", "date": "latest", "latitude": 59.33, "longitude": 18.07, "radiusKm": 50 }
+// smhi_get_current_conditions - lightning near Malmö
+{ "conditionType": "lightning", "date": "latest", "kommun": "Malmö", "radiusKm": 50 }
 
-// smhi_describe_data - list forecast parameters
-{ "dataType": "forecast_parameters" }
+// smhi_describe_data - list all kommuner
+{ "dataType": "kommuner" }
+
+// smhi_describe_data - list kommuner in Stockholms län
+{ "dataType": "kommuner", "lanFilter": "AB" }
+
+// smhi_describe_data - list all län
+{ "dataType": "lan" }
 ```

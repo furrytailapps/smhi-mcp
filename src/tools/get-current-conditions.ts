@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { smhiClient } from '@/clients/smhi-client';
 import { withErrorHandling } from '@/lib/response';
 import { ValidationError } from '@/lib/errors';
+import { resolveKommun, resolveLan } from '@/lib/location-resolver';
 
 /**
  * Condition type enum for consolidated current conditions tool
@@ -9,7 +10,7 @@ import { ValidationError } from '@/lib/errors';
 const conditionTypeSchema = z
   .enum(['warnings', 'radar', 'lightning'])
   .describe(
-    "Type of current conditions: 'warnings' (active weather warnings), 'radar' (precipitation images), 'lightning' (strike data)",
+    "Type of current conditions: 'warnings' (active weather warnings), 'radar' (precipitation images), 'lightning' (strike data)"
   );
 
 export const getCurrentConditionsInputSchema = {
@@ -18,7 +19,9 @@ export const getCurrentConditionsInputSchema = {
   warningLevel: z
     .enum(['yellow', 'orange', 'red'])
     .optional()
-    .describe("For warnings: minimum level to include. Options: yellow (be aware), orange (be prepared), red (take action)."),
+    .describe(
+      'For warnings: minimum level to include. Options: yellow (be aware), orange (be prepared), red (take action).'
+    ),
   // Radar options
   product: z
     .enum(['comp', 'pcappi'])
@@ -40,13 +43,33 @@ export const getCurrentConditionsInputSchema = {
     .min(55)
     .max(69)
     .optional()
-    .describe('For lightning: filter strikes near this latitude (WGS84). Use with longitude. Example: 59.33'),
+    .describe(
+      'For lightning: filter strikes near this latitude (WGS84). Example: 59.33. ' +
+        'Alternative: use kommun or lan parameter.'
+    ),
   longitude: z
     .number()
     .min(11)
     .max(24)
     .optional()
-    .describe('For lightning: filter strikes near this longitude (WGS84). Use with latitude. Example: 18.07'),
+    .describe(
+      'For lightning: filter strikes near this longitude (WGS84). Example: 18.07. ' +
+        'Alternative: use kommun or lan parameter.'
+    ),
+  kommun: z
+    .string()
+    .optional()
+    .describe(
+      'For lightning: filter strikes near this kommun (municipality). ' +
+        'Examples: "0180" or "Stockholm". Alternative to coordinates.'
+    ),
+  lan: z
+    .string()
+    .optional()
+    .describe(
+      'For lightning: filter strikes near this län (county). ' +
+        'Examples: "AB" or "Stockholms län". Alternative to coordinates.'
+    ),
   radiusKm: z
     .number()
     .min(1)
@@ -63,7 +86,8 @@ export const getCurrentConditionsTool = {
     "Use conditionType='warnings' for active weather warnings (storms, flooding). " +
     "Use conditionType='radar' for precipitation radar images (rain/snow nowcasting). " +
     "Use conditionType='lightning' for recent lightning strikes (crane/height work safety). " +
-    "Examples: conditionType='warnings', warningLevel='yellow' | conditionType='radar', format='png' | conditionType='lightning', date='latest'",
+    'For lightning location filter: use coordinates, kommun code/name, or län code/name. ' +
+    "Examples: conditionType='warnings' | conditionType='radar' | conditionType='lightning', kommun='Stockholm'",
   inputSchema: getCurrentConditionsInputSchema,
 };
 
@@ -75,6 +99,8 @@ type GetCurrentConditionsInput = {
   date?: string;
   latitude?: number;
   longitude?: number;
+  kommun?: string;
+  lan?: string;
   radiusKm?: number;
 };
 
@@ -91,8 +117,29 @@ export const getCurrentConditionsHandler = withErrorHandling(async (args: GetCur
     }
 
     case 'lightning': {
-      // Validate that latitude and longitude are either both provided or both omitted
-      if ((args.latitude !== undefined) !== (args.longitude !== undefined)) {
+      let { latitude, longitude } = args;
+
+      // Resolve coordinates from kommun or län if not provided directly
+      if (latitude === undefined || longitude === undefined) {
+        if (args.kommun) {
+          const resolved = resolveKommun(args.kommun);
+          if (!resolved) {
+            throw new ValidationError(`Unknown kommun: ${args.kommun}`);
+          }
+          latitude = resolved.latitude;
+          longitude = resolved.longitude;
+        } else if (args.lan) {
+          const resolved = resolveLan(args.lan);
+          if (!resolved) {
+            throw new ValidationError(`Unknown län: ${args.lan}`);
+          }
+          latitude = resolved.latitude;
+          longitude = resolved.longitude;
+        }
+      }
+
+      // Validate that latitude and longitude are either both resolved or both omitted
+      if ((latitude !== undefined) !== (longitude !== undefined)) {
         throw new ValidationError('Both latitude and longitude must be provided together, or both omitted');
       }
 
@@ -110,7 +157,7 @@ export const getCurrentConditionsHandler = withErrorHandling(async (args: GetCur
         date = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
       }
 
-      return smhiClient.getLightning(date, args.latitude, args.longitude, args.radiusKm);
+      return smhiClient.getLightning(date, latitude, longitude, args.radiusKm);
     }
 
     default:

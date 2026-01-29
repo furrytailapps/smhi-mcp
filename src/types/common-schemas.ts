@@ -47,5 +47,29 @@ export const describeDataTypeSchema = z
     'hydro_parameters',
     'warning_districts',
     'radar_products',
+    'kommuner',
+    'lan',
   ])
   .describe('Type of metadata to retrieve');
+
+/**
+ * Swedish kommun (municipality) code
+ * 4-digit code, e.g., "0180" for Stockholm
+ */
+export const kommunSchema = z
+  .string()
+  .regex(/^\d{4}$/)
+  .describe(
+    'Swedish kommun (municipality) code. 4-digit code, e.g., "0180" for Stockholm, "1480" for Göteborg'
+  );
+
+/**
+ * Swedish län (county) code
+ * 1-2 letter code, e.g., "AB" for Stockholms län
+ */
+export const lanSchema = z
+  .string()
+  .regex(/^[A-Za-z]{1,2}$/)
+  .describe(
+    'Swedish län (county) code. 1-2 letters, e.g., "AB" for Stockholms län, "O" for Västra Götalands län'
+  );
