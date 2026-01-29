@@ -22,23 +22,25 @@ Construction/infrastructure companies using yesper.ai who need:
 
 ## Available Tools (4)
 
-| Tool                         | Description                                              |
-| ---------------------------- | -------------------------------------------------------- |
-| `smhi_get_forecast`          | 10-day point forecast for construction planning          |
-| `smhi_get_observations`      | Station measurements (weather + water levels)            |
-| `smhi_get_current_conditions`| Warnings, radar, lightning (via `conditionType` param)   |
-| `smhi_describe_data`         | Discover stations, parameters, districts                 |
+| Tool                          | Description                                            |
+| ----------------------------- | ------------------------------------------------------ |
+| `smhi_get_forecast`           | 10-day point forecast for construction planning        |
+| `smhi_get_observations`       | Station measurements (weather + water levels)          |
+| `smhi_get_current_conditions` | Warnings, radar, lightning (via `conditionType` param) |
+| `smhi_describe_data`          | Discover stations, parameters, districts               |
 
 ### Tool Consolidation Pattern (Reference)
 
 This MCP demonstrates how to consolidate multiple related tools into one using enum parameters.
 
 **Before (6 tools):**
+
 - `smhi_get_warnings` - Weather warnings
 - `smhi_get_radar` - Radar images
 - `smhi_get_lightning` - Lightning strikes
 
 **After (1 tool):**
+
 ```typescript
 // smhi_get_current_conditions with conditionType enum
 conditionType: z.enum(['warnings', 'radar', 'lightning'])
@@ -98,7 +100,7 @@ GET / api / category / snow1g / version / 1 / geotype / point / lon / { lon } / 
 GET / api / version / 1.0 / parameter / { param } / station / { id } / period / { period } / data.json;
 
 // Warnings (IBW - Impact Based Warnings)
-GET /ibww/api/version/1/warning.json
+GET / ibww / api / version / 1 / warning.json;
 
 // Radar
 GET / api / version / latest / area / sweden / product / comp / format / png;
@@ -111,18 +113,29 @@ GET / api / version / latest / year / { y } / month / { m } / day / { d } / data
 
 Tools accept location in three formats:
 
-| Format | Example | Description |
-|--------|---------|-------------|
-| **WGS84 coordinates** | `latitude=59.33, longitude=18.07` | Decimal degrees |
-| **Kommun code/name** | `kommun="0180"` or `kommun="Stockholm"` | 4-digit municipality code or name |
-| **Län code/name** | `lan="AB"` or `lan="Stockholms län"` | 1-2 letter county code or name |
+| Format                | Example                           | Description               |
+| --------------------- | --------------------------------- | ------------------------- |
+| **WGS84 coordinates** | `latitude=59.33, longitude=18.07` | Decimal degrees           |
+| **Kommun code**       | `kommun="0180"`                   | 4-digit municipality code |
+| **Län code**          | `lan="AB"`                        | 1-2 letter county code    |
 
-- **Sweden bounds:** 55-69°N latitude, 11-24°E longitude
-- **Kommun codes:** 4-digit (e.g., "0180" = Stockholm, "1480" = Göteborg)
-- **Län codes:** 1-2 letters (e.g., "AB" = Stockholms län, "O" = Västra Götalands län)
-- **Radar output:** Includes SWEREF99TM (EPSG:3006) bounding box
+**Important:** Only codes are accepted, not names. Use `smhi_describe_data` to discover valid codes:
 
-Use `smhi_describe_data` with `dataType="kommuner"` or `dataType="lan"` to list available codes.
+- `dataType="kommuner"` → lists all 290 kommun codes with names
+- `dataType="lan"` → lists all 21 län codes with names
+- `dataType="kommuner", lanFilter="AB"` → kommuner in a specific län
+
+**Sweden bounds:** 55-69°N latitude, 11-24°E longitude
+
+**Common codes:**
+| Location | Kommun Code | Län Code |
+|----------|-------------|----------|
+| Stockholm | 0180 | AB |
+| Göteborg | 1480 | O |
+| Malmö | 1280 | M |
+| Uppsala | 0380 | C |
+| Kiruna | 2584 | BD |
+| Gotland | 0980 | I |
 
 ## Concurrency
 
@@ -142,6 +155,63 @@ SMHI API rate limits apply. Use `SMHI_API_CONCURRENCY = 2` from `@/lib/concurren
 | vis      | visibility         | km   |
 | msl      | pressure           | hPa  |
 | tstm     | thunderProbability | %    |
+
+## Observation Periods
+
+| Period              | Description                                                       |
+| ------------------- | ----------------------------------------------------------------- |
+| `latest-hour`       | Last hour of data (default)                                       |
+| `latest-day`        | Last 24 hours                                                     |
+| `latest-months`     | Last 3-4 months                                                   |
+| `corrected-archive` | Full historical data, quality-controlled (some stations to 1960s) |
+
+### Historical Data with `corrected-archive`
+
+Use `corrected-archive` period for multi-year historical queries (e.g., winter length analysis, climate trends). This returns quality-controlled data from SMHI's archive.
+
+**Date filtering (required for historical queries):**
+
+- `startDate`: Filter from this date (YYYY-MM-DD)
+- `endDate`: Filter until this date (YYYY-MM-DD)
+
+**Auto-aggregation:** Historical data is automatically aggregated to reduce response size:
+
+| Date Range | Aggregation | Output               |
+| ---------- | ----------- | -------------------- |
+| < 90 days  | Daily       | min/max/avg per day  |
+| >= 90 days | Weekly      | min/max/avg per week |
+
+**Example response structure:**
+
+```json
+{
+  "station": { "name": "Stockholm-Observatoriekullen A", ... },
+  "parameter": { "name": "Lufttemperatur", "unit": "celsius" },
+  "aggregation": {
+    "type": "weekly",
+    "rangeDays": 365,
+    "rawObservationCount": 8760,
+    "aggregatedCount": 52
+  },
+  "observations": [
+    { "period": "2024-01-01", "periodType": "week", "min": -8.2, "max": 2.1, "avg": -3.4, "count": 168 },
+    ...
+  ]
+}
+```
+
+**Example: Full year of Stockholm temperature (returns 52 weekly aggregates)**
+
+```json
+{
+  "dataType": "meteorological",
+  "kommun": "0180",
+  "parameter": "temperature",
+  "period": "corrected-archive",
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31"
+}
+```
 
 ## Observation Parameters
 
@@ -197,17 +267,17 @@ node ~/.claude/scripts/mcp-test-runner.cjs https://mcp-smhi.vercel.app/mcp --all
 // smhi_get_forecast - by coordinates
 { "latitude": 59.33, "longitude": 18.07 }
 
-// smhi_get_forecast - by kommun code
+// smhi_get_forecast - by kommun code (Stockholm = 0180)
 { "kommun": "0180" }
 
-// smhi_get_forecast - by kommun name
-{ "kommun": "Stockholm" }
-
-// smhi_get_forecast - by län code
+// smhi_get_forecast - by län code (Stockholm = AB)
 { "lan": "AB" }
 
-// smhi_get_observations - temperature in Göteborg
-{ "dataType": "meteorological", "kommun": "Göteborg", "parameter": "temperature", "period": "latest-hour" }
+// smhi_get_observations - temperature in Göteborg (kommun code 1480)
+{ "dataType": "meteorological", "kommun": "1480", "parameter": "temperature", "period": "latest-hour" }
+
+// smhi_get_observations - historical temperature for winter analysis
+{ "dataType": "meteorological", "kommun": "0180", "parameter": "temperature", "period": "corrected-archive", "startDate": "2020-01-01", "endDate": "2021-01-01" }
 
 // smhi_get_current_conditions - weather warnings
 { "conditionType": "warnings", "warningLevel": "yellow" }
@@ -215,15 +285,15 @@ node ~/.claude/scripts/mcp-test-runner.cjs https://mcp-smhi.vercel.app/mcp --all
 // smhi_get_current_conditions - precipitation radar
 { "conditionType": "radar", "format": "png" }
 
-// smhi_get_current_conditions - lightning near Malmö
-{ "conditionType": "lightning", "date": "latest", "kommun": "Malmö", "radiusKm": 50 }
+// smhi_get_current_conditions - lightning near Malmö (kommun code 1280)
+{ "conditionType": "lightning", "date": "latest", "kommun": "1280", "radiusKm": 50 }
 
-// smhi_describe_data - list all kommuner
+// smhi_describe_data - list all kommuner (REQUIRED before using kommun codes)
 { "dataType": "kommuner" }
 
 // smhi_describe_data - list kommuner in Stockholms län
 { "dataType": "kommuner", "lanFilter": "AB" }
 
-// smhi_describe_data - list all län
+// smhi_describe_data - list all län (REQUIRED before using län codes)
 { "dataType": "lan" }
 ```

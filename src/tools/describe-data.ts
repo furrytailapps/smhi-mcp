@@ -10,8 +10,7 @@ export const describeDataInputSchema = {
     .string()
     .optional()
     .describe(
-      'For kommuner: filter by län code to list only kommuner in that county. ' +
-        'Example: "AB" for Stockholms län kommuner.'
+      'For kommuner: filter by län code to list only kommuner in that county. ' + 'Example: "AB" for Stockholms län kommuner.',
     ),
 };
 

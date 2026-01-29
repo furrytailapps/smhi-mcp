@@ -46,11 +46,9 @@ const KOMMUN_PREFIX_TO_LAN: Record<string, string> = {
 const kommuner = kommunerData as Kommun[];
 const lan = lanData as Lan[];
 
-// Create lookup maps for efficient access
+// Create lookup maps for efficient access (codes only)
 const kommunByCode = new Map(kommuner.map((k) => [k.code, k]));
-const kommunByName = new Map(kommuner.map((k) => [k.name.toLowerCase(), k]));
 const lanByCode = new Map(lan.map((l) => [l.code, l]));
-const lanByName = new Map(lan.map((l) => [l.name.toLowerCase(), l]));
 
 export interface ResolvedLocation {
   latitude: number;
@@ -62,17 +60,16 @@ export interface ResolvedLocation {
 
 /**
  * Resolve a kommun code to coordinates
+ * Only accepts 4-digit kommun codes (not names)
  * Uses the län centroid since kommun-level coordinates aren't available
  */
-export function resolveKommun(codeOrName: string): ResolvedLocation | null {
-  // Try by code first (4-digit)
-  let kommun = kommunByCode.get(codeOrName);
-
-  // Try by name
-  if (!kommun) {
-    kommun = kommunByName.get(codeOrName.toLowerCase());
+export function resolveKommun(code: string): ResolvedLocation | null {
+  // Only accept 4-digit codes
+  if (!/^\d{4}$/.test(code)) {
+    return null;
   }
 
+  const kommun = kommunByCode.get(code);
   if (!kommun) {
     return null;
   }
@@ -101,16 +98,15 @@ export function resolveKommun(codeOrName: string): ResolvedLocation | null {
 
 /**
  * Resolve a län code to coordinates
+ * Only accepts 1-2 letter län codes (not names)
  */
-export function resolveLan(codeOrName: string): ResolvedLocation | null {
-  // Try by code first (1-2 letter)
-  let lanInfo = lanByCode.get(codeOrName.toUpperCase());
-
-  // Try by name
-  if (!lanInfo) {
-    lanInfo = lanByName.get(codeOrName.toLowerCase());
+export function resolveLan(code: string): ResolvedLocation | null {
+  // Only accept 1-2 letter codes
+  if (!/^[A-Za-z]{1,2}$/.test(code)) {
+    return null;
   }
 
+  const lanInfo = lanByCode.get(code.toUpperCase());
   if (!lanInfo) {
     return null;
   }
@@ -125,27 +121,22 @@ export function resolveLan(codeOrName: string): ResolvedLocation | null {
 }
 
 /**
- * Resolve any location identifier to coordinates
- * Tries kommun first, then län
+ * Resolve any location code to coordinates
+ * Only accepts codes: 4-digit kommun code or 1-2 letter län code
  */
-export function resolveLocation(identifier: string): ResolvedLocation | null {
+export function resolveLocation(code: string): ResolvedLocation | null {
   // If 4 digits, it's a kommun code
-  if (/^\d{4}$/.test(identifier)) {
-    return resolveKommun(identifier);
+  if (/^\d{4}$/.test(code)) {
+    return resolveKommun(code);
   }
 
   // If 1-2 letters, it's a län code
-  if (/^[A-Za-z]{1,2}$/.test(identifier)) {
-    return resolveLan(identifier);
+  if (/^[A-Za-z]{1,2}$/.test(code)) {
+    return resolveLan(code);
   }
 
-  // Try as name - kommun first, then län
-  const kommun = resolveKommun(identifier);
-  if (kommun) {
-    return kommun;
-  }
-
-  return resolveLan(identifier);
+  // Invalid format
+  return null;
 }
 
 /**

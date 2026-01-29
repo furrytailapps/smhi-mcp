@@ -12,7 +12,7 @@ export const getForecastInputSchema = {
     .optional()
     .describe(
       'Latitude in WGS84 (decimal degrees). Sweden range: 55-69. Example: 59.33 for Stockholm. ' +
-        'Optional if kommun or lan is provided.'
+        'Optional if kommun or lan is provided.',
     ),
   longitude: z
     .number()
@@ -21,21 +21,23 @@ export const getForecastInputSchema = {
     .optional()
     .describe(
       'Longitude in WGS84 (decimal degrees). Sweden range: 11-24. Example: 18.07 for Stockholm. ' +
-        'Optional if kommun or lan is provided.'
+        'Optional if kommun or lan is provided.',
     ),
   kommun: z
     .string()
+    .regex(/^\d{4}$/)
     .optional()
     .describe(
-      'Swedish kommun (municipality) code or name. Examples: "0180" or "Stockholm", "1480" or "Göteborg". ' +
-        'Alternative to latitude/longitude.'
+      'Swedish kommun code (4 digits). Examples: "0180" (Stockholm), "1480" (Göteborg). ' +
+        'Use smhi_describe_data with dataType="kommuner" to list valid codes. Alternative to coordinates.',
     ),
   lan: z
     .string()
+    .regex(/^[A-Z]{1,2}$/)
     .optional()
     .describe(
-      'Swedish län (county) code or name. Examples: "AB" or "Stockholms län", "O" or "Västra Götalands län". ' +
-        'Alternative to latitude/longitude.'
+      'Swedish län code (1-2 letters). Examples: "AB" (Stockholm), "O" (Västra Götaland). ' +
+        'Use smhi_describe_data with dataType="lan" to list valid codes. Alternative to coordinates.',
     ),
   parameters: z
     .string()
@@ -44,7 +46,7 @@ export const getForecastInputSchema = {
       "Comma-separated list of parameters to include (e.g., 'temperature,windSpeed,precipitationMean'). " +
         'Available: temperature, windSpeed, windGust, windDirection, humidity, cloudCover, ' +
         'precipitationCategory, precipitationMean, visibility, pressure, thunderProbability. ' +
-        'If omitted, all parameters are returned.'
+        'If omitted, all parameters are returned.',
     ),
 };
 
@@ -54,8 +56,8 @@ export const getForecastTool = {
     'Get weather forecast for a specific location in Sweden. ' +
     'Returns 10-day forecast with hourly data for the first 2 days, then 6-hour intervals. ' +
     'Use for planning outdoor construction work, concrete pouring conditions, crane operations. ' +
-    'Location can be specified by: (1) latitude/longitude coordinates, (2) kommun code/name, or (3) län code/name. ' +
-    'Examples: latitude=59.33, longitude=18.07 | kommun="0180" | kommun="Stockholm" | lan="AB"',
+    'Location can be specified by: (1) latitude/longitude coordinates, (2) kommun code (4 digits), or (3) län code (1-2 letters). ' +
+    'Examples: latitude=59.33, longitude=18.07 | kommun="0180" | lan="AB"',
   inputSchema: getForecastInputSchema,
 };
 
@@ -75,21 +77,23 @@ export const getForecastHandler = withErrorHandling(async (args: GetForecastInpu
     if (args.kommun) {
       const resolved = resolveKommun(args.kommun);
       if (!resolved) {
-        throw new ValidationError(`Unknown kommun: ${args.kommun}`);
+        throw new ValidationError(
+          `Invalid kommun code: ${args.kommun}. Use smhi_describe_data with dataType="kommuner" to list valid 4-digit codes.`,
+        );
       }
       latitude = resolved.latitude;
       longitude = resolved.longitude;
     } else if (args.lan) {
       const resolved = resolveLan(args.lan);
       if (!resolved) {
-        throw new ValidationError(`Unknown län: ${args.lan}`);
+        throw new ValidationError(
+          `Invalid län code: ${args.lan}. Use smhi_describe_data with dataType="lan" to list valid 1-2 letter codes.`,
+        );
       }
       latitude = resolved.latitude;
       longitude = resolved.longitude;
     } else {
-      throw new ValidationError(
-        'Location required. Provide latitude/longitude, kommun, or lan parameter.'
-      );
+      throw new ValidationError('Location required. Provide latitude/longitude, kommun, or lan parameter.');
     }
   }
 

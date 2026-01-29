@@ -30,10 +30,16 @@ export const dataTypeSchema = z
 
 /**
  * Observation period
+ * - latest-hour: Last hour of data
+ * - latest-day: Last 24 hours
+ * - latest-months: Last 3-4 months
+ * - corrected-archive: Full historical data (quality-controlled, some stations back to 1960s)
  */
 export const periodSchema = z
-  .enum(['latest-hour', 'latest-day', 'latest-months'])
-  .describe('Time period for observations: latest-hour, latest-day, or latest-months');
+  .enum(['latest-hour', 'latest-day', 'latest-months', 'corrected-archive'])
+  .describe(
+    'Time period: latest-hour, latest-day, latest-months, or corrected-archive (full historical data, some stations back to 1960s)',
+  );
 
 /**
  * Data types for describe_data tool
@@ -59,9 +65,7 @@ export const describeDataTypeSchema = z
 export const kommunSchema = z
   .string()
   .regex(/^\d{4}$/)
-  .describe(
-    'Swedish kommun (municipality) code. 4-digit code, e.g., "0180" for Stockholm, "1480" for Göteborg'
-  );
+  .describe('Swedish kommun (municipality) code. 4-digit code, e.g., "0180" for Stockholm, "1480" for Göteborg');
 
 /**
  * Swedish län (county) code
@@ -70,6 +74,4 @@ export const kommunSchema = z
 export const lanSchema = z
   .string()
   .regex(/^[A-Za-z]{1,2}$/)
-  .describe(
-    'Swedish län (county) code. 1-2 letters, e.g., "AB" for Stockholms län, "O" for Västra Götalands län'
-  );
+  .describe('Swedish län (county) code. 1-2 letters, e.g., "AB" for Stockholms län, "O" for Västra Götalands län');

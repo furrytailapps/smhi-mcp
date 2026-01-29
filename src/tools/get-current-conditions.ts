@@ -10,7 +10,7 @@ import { resolveKommun, resolveLan } from '@/lib/location-resolver';
 const conditionTypeSchema = z
   .enum(['warnings', 'radar', 'lightning'])
   .describe(
-    "Type of current conditions: 'warnings' (active weather warnings), 'radar' (precipitation images), 'lightning' (strike data)"
+    "Type of current conditions: 'warnings' (active weather warnings), 'radar' (precipitation images), 'lightning' (strike data)",
   );
 
 export const getCurrentConditionsInputSchema = {
@@ -19,9 +19,7 @@ export const getCurrentConditionsInputSchema = {
   warningLevel: z
     .enum(['yellow', 'orange', 'red'])
     .optional()
-    .describe(
-      'For warnings: minimum level to include. Options: yellow (be aware), orange (be prepared), red (take action).'
-    ),
+    .describe('For warnings: minimum level to include. Options: yellow (be aware), orange (be prepared), red (take action).'),
   // Radar options
   product: z
     .enum(['comp', 'pcappi'])
@@ -45,7 +43,7 @@ export const getCurrentConditionsInputSchema = {
     .optional()
     .describe(
       'For lightning: filter strikes near this latitude (WGS84). Example: 59.33. ' +
-        'Alternative: use kommun or lan parameter.'
+        'Alternative: use kommun or lan parameter.',
     ),
   longitude: z
     .number()
@@ -54,21 +52,25 @@ export const getCurrentConditionsInputSchema = {
     .optional()
     .describe(
       'For lightning: filter strikes near this longitude (WGS84). Example: 18.07. ' +
-        'Alternative: use kommun or lan parameter.'
+        'Alternative: use kommun or lan parameter.',
     ),
   kommun: z
     .string()
+    .regex(/^\d{4}$/)
     .optional()
     .describe(
-      'For lightning: filter strikes near this kommun (municipality). ' +
-        'Examples: "0180" or "Stockholm". Alternative to coordinates.'
+      'For lightning: filter strikes near this kommun code (4 digits). ' +
+        'Examples: "0180" (Stockholm), "1480" (Göteborg). ' +
+        'Use smhi_describe_data with dataType="kommuner" to list valid codes.',
     ),
   lan: z
     .string()
+    .regex(/^[A-Z]{1,2}$/)
     .optional()
     .describe(
-      'For lightning: filter strikes near this län (county). ' +
-        'Examples: "AB" or "Stockholms län". Alternative to coordinates.'
+      'For lightning: filter strikes near this län code (1-2 letters). ' +
+        'Examples: "AB" (Stockholm), "O" (Västra Götaland). ' +
+        'Use smhi_describe_data with dataType="lan" to list valid codes.',
     ),
   radiusKm: z
     .number()
@@ -86,8 +88,8 @@ export const getCurrentConditionsTool = {
     "Use conditionType='warnings' for active weather warnings (storms, flooding). " +
     "Use conditionType='radar' for precipitation radar images (rain/snow nowcasting). " +
     "Use conditionType='lightning' for recent lightning strikes (crane/height work safety). " +
-    'For lightning location filter: use coordinates, kommun code/name, or län code/name. ' +
-    "Examples: conditionType='warnings' | conditionType='radar' | conditionType='lightning', kommun='Stockholm'",
+    'For lightning location filter: use coordinates, kommun code (4 digits), or län code (1-2 letters). ' +
+    "Examples: conditionType='warnings' | conditionType='radar' | conditionType='lightning', kommun='0180'",
   inputSchema: getCurrentConditionsInputSchema,
 };
 
@@ -124,14 +126,18 @@ export const getCurrentConditionsHandler = withErrorHandling(async (args: GetCur
         if (args.kommun) {
           const resolved = resolveKommun(args.kommun);
           if (!resolved) {
-            throw new ValidationError(`Unknown kommun: ${args.kommun}`);
+            throw new ValidationError(
+              `Invalid kommun code: ${args.kommun}. Use smhi_describe_data with dataType="kommuner" to list valid 4-digit codes.`,
+            );
           }
           latitude = resolved.latitude;
           longitude = resolved.longitude;
         } else if (args.lan) {
           const resolved = resolveLan(args.lan);
           if (!resolved) {
-            throw new ValidationError(`Unknown län: ${args.lan}`);
+            throw new ValidationError(
+              `Invalid län code: ${args.lan}. Use smhi_describe_data with dataType="lan" to list valid 1-2 letter codes.`,
+            );
           }
           latitude = resolved.latitude;
           longitude = resolved.longitude;
