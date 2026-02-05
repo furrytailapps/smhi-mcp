@@ -20,7 +20,7 @@ Construction/infrastructure companies using yesper.ai who need:
 - Water level data for excavation near waterways
 - Lightning alerts for crane/height work safety
 
-## Available Tools (4)
+## Available Tools (<!-- AUTO:tool_count -->4<!-- /AUTO -->)
 
 | Tool                          | Description                                            |
 | ----------------------------- | ------------------------------------------------------ |

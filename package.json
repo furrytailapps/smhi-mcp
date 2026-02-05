@@ -29,7 +29,10 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "prettier": "prettier --check .",
-    "prettier:fix": "prettier --write ."
+    "prettier:fix": "prettier --write .",
+    "predeploy": "./scripts/predeploy.sh",
+    "test": "node tests/basic.cjs",
+    "test:all": "node tests/comprehensive.cjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",
