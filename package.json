@@ -5,7 +5,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/furrytailapps/smhi-mcp.git"
+    "url": "https://github.com/furrytailapps/mcp-smhi.git"
   },
   "keywords": [
     "mcp",
@@ -19,9 +19,9 @@
   ],
   "author": "Yesper",
   "bugs": {
-    "url": "https://github.com/furrytailapps/smhi-mcp/issues"
+    "url": "https://github.com/furrytailapps/mcp-smhi/issues"
   },
-  "homepage": "https://github.com/furrytailapps/smhi-mcp",
+  "homepage": "https://github.com/furrytailapps/mcp-smhi",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
