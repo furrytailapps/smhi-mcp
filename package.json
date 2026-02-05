@@ -1,5 +1,5 @@
 {
-  "name": "smhi-mcp",
+  "name": "mcp-smhi",
   "version": "1.0.0",
   "description": "MCP server wrapping the SMHI (Swedish Meteorological and Hydrological Institute) API for weather and hydrology data",
   "type": "module",
