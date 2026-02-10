@@ -230,8 +230,8 @@ Use `corrected-archive` period for multi-year historical queries (e.g., winter l
 
 | ID  | Name        | Unit |
 | --- | ----------- | ---- |
-| 1   | water_level | m    |
-| 2   | water_flow  | m³/s |
+| 1   | water_flow  | m³/s |
+| 3   | water_level | cm   |
 
 ## Warning Levels (SMHI Color-Coded)
 

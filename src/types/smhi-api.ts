@@ -502,6 +502,6 @@ export const MET_OBS_PARAMS: Record<number, { name: string; description: string;
  * Hydrological observation parameters
  */
 export const HYDRO_OBS_PARAMS: Record<number, { name: string; description: string; unit: string }> = {
-  1: { name: 'water_level', description: 'Vattenstånd', unit: 'm' },
-  2: { name: 'water_flow', description: 'Vattenföring', unit: 'm³/s' },
+  1: { name: 'water_flow', description: 'Vattenföring (Dygn)', unit: 'm³/s' },
+  3: { name: 'water_level', description: 'Vattenstånd', unit: 'cm' },
 };
