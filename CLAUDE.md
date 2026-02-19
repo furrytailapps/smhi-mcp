@@ -242,11 +242,10 @@ Use `corrected-archive` period for multi-year historical queries (e.g., winter l
 ## Development
 
 ```bash
-npm run dev          # Start dev server (localhost:3000)
-npm run typecheck    # Type check
-npm run lint         # Lint
-npm run prettier:fix # Format code
+npm run dev   # Start dev server (localhost:3000)
 ```
+
+Quality commands (typecheck, lint, prettier:fix): see parent CLAUDE.md (Code Quality section).
 
 ## Testing
 
