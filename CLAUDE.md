@@ -19,4 +19,3 @@ https://mcp-smhi.vercel.app/mcp
 
 - No env vars needed (all public APIs)
 - Location accepts WGS84 OR kommun/lan codes (codes only, not names — use `smhi_describe_data` to look up codes)
-- Kommun queries resolve to län centroid (kommun-level coordinates not available) — all kommuner in same län hit same SMHI grid point

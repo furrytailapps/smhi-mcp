@@ -6,6 +6,8 @@ import lanData from '@/data/lan.json';
 interface Kommun {
   code: string;
   name: string;
+  latitude: number;
+  longitude: number;
 }
 
 interface Lan {
@@ -55,7 +57,6 @@ export interface ResolvedLocation {
   code: string;
 }
 
-// Uses län centroid since kommun-level coordinates aren't available
 export function resolveKommun(code: string): ResolvedLocation | null {
   if (!/^\d{4}$/.test(code)) {
     return null;
@@ -66,22 +67,9 @@ export function resolveKommun(code: string): ResolvedLocation | null {
     return null;
   }
 
-  // Get län from kommun code prefix
-  const prefix = kommun.code.substring(0, 2);
-  const lanCode = KOMMUN_PREFIX_TO_LAN[prefix];
-
-  if (!lanCode) {
-    return null;
-  }
-
-  const lanInfo = lanByCode.get(lanCode);
-  if (!lanInfo) {
-    return null;
-  }
-
   return {
-    latitude: lanInfo.latitude,
-    longitude: lanInfo.longitude,
+    latitude: kommun.latitude,
+    longitude: kommun.longitude,
     name: kommun.name,
     type: 'kommun',
     code: kommun.code,
